@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useState } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
@@ -5,43 +6,48 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import style from "./style";
 
-const Login = () => {
+
+
+const Login = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState('');
+
   
   // Function to handle login API call
   const handleLogin = async () => {
-    // Validate input
+    const apiUrl = 'https://ingress.bizcrmapp.com/api/v1/auth/login';
+  
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password");
+      Alert.alert('Validation Error', 'Email and password are required!');
       return;
     }
-
+  
     try {
-      // API URL
-      const url = 'https://ingress.bizcrmapp.com/api/v1/auth/login';
-
-      // Sending POST request to login API
-      const response = await axios.post(url, {
+      const response = await axios.post(apiUrl, {
         email: email,
         password: password,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
-
-      // Handle success response
-      if (response.status === 200) {
-        console.log("Login Success:", response.data);
-        Alert.alert("Success", "Logged in successfully!");
-        // You can store tokens here or navigate to another screen
+  
+      if (response.data && response.data.data && response.data.data.token) {
+        const token = response.data.data.token; // Correctly extract token
+        console.log("Login Successful:", response.data);
+        console.log(token,"token")
+  
+        // Save token to AsyncStorage
+        await AsyncStorage.setItem('authToken', token);
+  
+        Alert.alert('Success', 'Logged in successfully!');
+        
+        // Navigate to Home screen
+        navigation.navigate('Home');
       } else {
-        Alert.alert("Error", "Login failed. Please check your credentials.");
+        Alert.alert('Error', 'Token not found in the response.');
       }
     } catch (error) {
-      console.error("Login Error:", error);
-      Alert.alert("Error", "Something went wrong. Please try again later.");
+      console.error("Error logging in:", error);
+      Alert.alert('Error', 'Login failed. Check your credentials.');
     }
   };
 
@@ -58,6 +64,7 @@ const Login = () => {
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
+            
           />
         </View>
         
